@@ -32,6 +32,7 @@ class PassportController extends Controller
         $users['name'] = $user->name;
         $users['email'] = $user->email;
         $users['address'] = $user->address;
+        $users['user_id'] = $user->id;
         $users['token'] = $token;
         return $this->sendResponse($users, 'User register successful!', 'US001');
     }
@@ -57,10 +58,13 @@ class PassportController extends Controller
             $token = auth()->user()->createToken('pizza-task')->accessToken;
             $user_name = auth()->user()->name;
             $user_email = auth()->user()->email;
+            $user_address = auth()->user()->address;
+            $user_id = auth()->user()->id;
 
             $user['name'] = $user_name;
             $user['email'] = $user_email;
-            $user['address'] = $user->address;
+            $user['address'] = $user_address;
+            $user['user_id'] = $user_id;
             $user['token'] = $token;
 
             return $this->sendResponse($user, 'User Login successful', 'US002');

@@ -3,7 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Cart;
+use App\Order;
 use App\User;
+use Log;
+use Response;
+use Validator;
 use Illuminate\Http\Request;
 
 class CartController extends Controller
@@ -37,32 +41,68 @@ class CartController extends Controller
      */
     public function store(Request $request)
     {
-        //
 
-        $data = $request->json()->all();
+     try{
+         $validate = Validator::make($request->data,[
+             'item_count' => 'required|integer',
+             'user_id' => 'required',
+             'total_amount_in_dollars' => 'required',
+             'total_amount_in_euros' => 'required',
+             'address' => 'required',
+             'shipping_fees' => 'required',
+             'phone_number' => 'required',
+         ]);
+         if($validate->fails()){
+             return $this->sendError('Validations Error', $validate->errors());
+         }
+        $order_code = mt_rand(2, 909);
+        $order_id_code = 'ORD'.$order_code;
+        $order = new Order;
+        $order->item_count = $request->data['item_count'];
+        $order->order_id = $order_id_code;
+        $order->user_id = $request->data['user_id'];
+        $order->total_amount_in_dollars = $request->data['total_amount_in_dollars'];
+        $order->total_amount_in_euros = $request->data['total_amount_in_euros'];
+        $order->shipping_address = $request->data['address'];
+        $order->shipping_fees = $request->data['shipping_fees'];
+        $order->phone_number = $request->data['phone_number'];
+        $order->save();
 
-        $this->validate($request, [
-            'name' => 'required',
-            'price' => 'required',
-            'photo' => 'required',
-            'quantity' => 'required|integer',
-            'id' => 'required',
-        ]);
 
-        foreach ($data as $carts) {
+        foreach ($request->cartItems as $carts) {
+
+            $validate = Validator::make($carts,[
+                'name' => 'required',
+                'price' => 'required',
+                'photo' => 'required',
+                'quantity' => 'required|integer',
+                'id' => 'required',
+            ]);
+
+            if($validate->fails()){
+                 return $this->sendError('Validations Error', $validate->errors());
+            }
+
             $cart = new Cart();
-            $cart->name = $carts->name;
-            $cart->price = $carts->price;
-            $cart->photo = $carts->photo;
-            $cart->quantity = $carts->quantity;
-            $cart->product_id = $carts->id;
-            $cart->user_id = auth()->user()->id;
+            $cart->name = $carts['name'];
+            $cart->price = $carts['price'];
+            $cart->photo = $carts['photo'];
+            $cart->quantity = $carts['quantity'];
+            $cart->product_id = $carts['id'];
+            $cart->user_id = $request->data['user_id'];
+            $cart->order_id = $order_id_code;
             $cart->save();
         }
 
-        $user = User::find(auth()->user()->id);
-        $user->address = $request->address;
+        $user = User::find($request->data['user_id']);
+        $user->address = $request->data['address'];
+        $user->phone_number = $request->data['phone_number'];
         $user->save();
+
+        return $this->sendResponse($cart, 'Orders placed successful', 'OD001');
+      }catch(\Exception $e){
+          Log::error('Error in checking out : '.$e);
+      }
 
     }
 
