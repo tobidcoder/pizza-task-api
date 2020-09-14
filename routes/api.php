@@ -21,12 +21,12 @@ use Illuminate\Support\Facades\Route;
 Route::post('/login', 'PassportController@login');
 Route::post('/register', 'PassportController@register');
 Route::post('/add-to-cart', 'CartController@store');
-
+Route::post('/order/items', 'OrderController@getOrderItems');
+Route::post('/orders', 'OrderController@index');
 
 
 Route::middleware('auth:api')->group(function () {
     Route::get('/user', 'PassportController@details');
     Route::post('/save-shipping-address', 'PassportController@saveAddress');
-    Route::post('/order/items', 'OrderController@getOrderItems');
-    Route::post('/orders', 'OrderController@index');
+
 });
