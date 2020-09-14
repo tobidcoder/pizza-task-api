@@ -56,8 +56,8 @@ class CartController extends Controller
     {
 
      try{
-         if(isset($request->data['email'])){
-         if(isset($request->data['name'])) {
+
+         if(isset($request->data['name']) && isset($request->data['email'])) {
              $validate = Validator::make($request->data,[
                  'name' => 'required',
                  'phone_number' => 'required',
@@ -72,7 +72,7 @@ class CartController extends Controller
            }
 
              $user = $this->passport->register($request->data);
-         }else{
+         }elseif(isset($request->data['email'])){
              $validate = Validator::make($request->data,[
                  'email' => 'required',
                  'currency' => 'required',
@@ -82,9 +82,14 @@ class CartController extends Controller
              if($validate->fails()){
                  return $this->sendError('Validations Error', $validate->errors());
              }
+
              $user = $this->passport->login($request->data);
+             if($user === 'Incorrect'){
+                 return $this->sendError('incorrect', 'Email or password is incorrect!');
+             }
+
          }
-         }
+
 
         $order_code = mt_rand(2, 909);
         $order_id_code = 'ORD'.$order_code;
