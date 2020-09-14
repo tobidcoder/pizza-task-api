@@ -20,6 +20,7 @@ class CreateCartsTable extends Migration
             $table->string('order_id');
             $table->string('name');
             $table->decimal('price', '20', '2');
+            $table->string('currency');
             $table->string('photo');
             $table->bigInteger('quantity');
             $table->timestamps();

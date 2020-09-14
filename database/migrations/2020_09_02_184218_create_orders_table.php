@@ -18,8 +18,8 @@ class CreateOrdersTable extends Migration
             $table->unsignedBigInteger('user_id');
             $table->string('order_id');
             $table->bigInteger('item_count');
-            $table->decimal('total_amount_in_dollars', '20', '2');
-            $table->decimal('total_amount_in_euros');
+            $table->decimal('total_amount', '20', '2');
+            $table->string('currency');
             $table->string('shipping_address');
             $table->decimal('shipping_fees', '20', 2);
             $table->string('phone_number', '15');

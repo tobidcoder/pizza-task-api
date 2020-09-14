@@ -8,10 +8,22 @@ use App\User;
 use Log;
 use Response;
 use Validator;
+use App\Http\Controllers\PassportController as Passport;
 use Illuminate\Http\Request;
 
 class CartController extends Controller
 {
+
+
+//    public Passport = $this->passport;
+
+    /** @var   */
+    private $passport;
+
+    public function __construct(Passport $passport)
+    {
+        $this->passport = $passport;
+    }
     /**
      * Display a listing of the resource.
      *
@@ -40,32 +52,58 @@ class CartController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
+
     {
 
      try{
-         $validate = Validator::make($request->data,[
-             'item_count' => 'required|integer',
-             'user_id' => 'required',
-             'total_amount_in_dollars' => 'required',
-             'total_amount_in_euros' => 'required',
-             'address' => 'required',
-             'shipping_fees' => 'required',
-             'phone_number' => 'required',
-         ]);
-         if($validate->fails()){
+         if(isset($request->data['email'])){
+         if(isset($request->data['name'])) {
+             $validate = Validator::make($request->data,[
+                 'name' => 'required',
+                 'phone_number' => 'required',
+                 'email' => 'required|email|unique:users',
+                 'currency' => 'required',
+                 'address' => 'required',
+                 'password' => 'required',
+             ]);
+
+            if($validate->fails()){
              return $this->sendError('Validations Error', $validate->errors());
+           }
+
+             $user = $this->passport->register($request->data);
+         }else{
+             $validate = Validator::make($request->data,[
+                 'email' => 'required',
+                 'currency' => 'required',
+                 'password' => 'required',
+             ]);
+
+             if($validate->fails()){
+                 return $this->sendError('Validations Error', $validate->errors());
+             }
+             $user = $this->passport->login($request->data);
          }
+         }
+
         $order_code = mt_rand(2, 909);
         $order_id_code = 'ORD'.$order_code;
         $order = new Order;
-        $order->item_count = $request->data['item_count'];
+        $order->item_count = $request->itemCount;
         $order->order_id = $order_id_code;
-        $order->user_id = $request->data['user_id'];
-        $order->total_amount_in_dollars = $request->data['total_amount_in_dollars'];
-        $order->total_amount_in_euros = $request->data['total_amount_in_euros'];
-        $order->shipping_address = $request->data['address'];
-        $order->shipping_fees = $request->data['shipping_fees'];
-        $order->phone_number = $request->data['phone_number'];
+         if($request->user_id){
+             $order->user_id = $request->user_id;
+             $users = User::find($request->user_id);
+             $order->shipping_address = $users->address;
+             $order->phone_number = $users->phone_number;
+         }else{
+             $order->user_id = $user['user_id'];
+             $order->shipping_address = $user['address'];
+             $order->phone_number = $user['phone_number'];
+         }
+        $order->currency = $request->data['currency'];
+        $order->total_amount = $request->total;
+        $order->shipping_fees = $request->shippingFees;
         $order->save();
 
 
@@ -86,20 +124,22 @@ class CartController extends Controller
             $cart = new Cart();
             $cart->name = $carts['name'];
             $cart->price = $carts['price'];
+            $cart->currency = $request->data['currency'];
             $cart->photo = $carts['photo'];
             $cart->quantity = $carts['quantity'];
             $cart->product_id = $carts['id'];
-            $cart->user_id = $request->data['user_id'];
+            if($request->user_id){
+                $cart->user_id = $request->user_id;
+            }else{
+                $cart->user_id = $user['user_id'];
+            }
+
             $cart->order_id = $order_id_code;
             $cart->save();
         }
+//        return $user;
 
-        $user = User::find($request->data['user_id']);
-        $user->address = $request->data['address'];
-        $user->phone_number = $request->data['phone_number'];
-        $user->save();
-
-        return $this->sendResponse($cart, 'Orders placed successful', 'OD001');
+        return $this->sendResponse($user, 'Orders placed successful', 'OD001');
       }catch(\Exception $e){
           Log::error('Error in checking out : '.$e);
       }

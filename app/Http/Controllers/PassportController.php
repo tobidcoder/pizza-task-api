@@ -14,18 +14,15 @@ class PassportController extends Controller
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function register(Request $request)
+    public function register($data)
     {
-        $this->validate($request, [
-            'name' => 'required|min:3',
-            'email' => 'required|email|unique:users',
-            'password' => 'required|min:6',
-        ]);
 
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => bcrypt($request->password)
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => bcrypt($data['password']),
+            'address' => $data['address'],
+            'phone_number' => $data['phone_number'],
         ]);
 
         $token = $user->createToken('pizza-task')->accessToken;
@@ -33,8 +30,11 @@ class PassportController extends Controller
         $users['email'] = $user->email;
         $users['address'] = $user->address;
         $users['user_id'] = $user->id;
+        $users['address'] = $user->address;
+        $users['phone_number'] = $user->address;
         $users['token'] = $token;
-        return $this->sendResponse($users, 'User register successful!', 'US001');
+        $users['phone_number'] = $user->phone_number;
+        return $users;
     }
 
     /**
@@ -43,15 +43,11 @@ class PassportController extends Controller
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function login(Request $request)
+    public function login($data)
     {
-        $this->validate($request, [
-            'email' => 'required',
-            'password' => 'required',
-            ]);
         $credentials = [
-            'email' => $request->email,
-            'password' => $request->password
+            'email' => $data['email'],
+            'password' => $data['password']
         ];
 
         if (auth()->attempt($credentials)) {
@@ -60,16 +56,18 @@ class PassportController extends Controller
             $user_email = auth()->user()->email;
             $user_address = auth()->user()->address;
             $user_id = auth()->user()->id;
+            $phone_number = auth()->user()->phone_number;
 
             $user['name'] = $user_name;
             $user['email'] = $user_email;
             $user['address'] = $user_address;
             $user['user_id'] = $user_id;
             $user['token'] = $token;
+            $user['phone_number'] = $phone_number;
 
-            return $this->sendResponse($user, 'User Login successful', 'US002');
+            return $user;
         } else {
-            return $this->sendError('Incorrect', 'Incorrect email or password');
+            return 'Incorrect';
         }
     }
 
