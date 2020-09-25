@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Cart;
 use App\Order;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Log;
 use Response;
@@ -21,40 +22,37 @@ class OrderController extends Controller
      */
     public function index(Request $request)
     {
-        $this->validate($request, [
-            'user_id' => 'required',
-        ]);
-       try {
-           $user = User::find($request->user_id);
-           $orders = $user->orders;
-           if(count($orders) == 0){
-               return $this->sendError('No Order Yet', 'You have placed any order yet!');
-           }
-           return $this->sendResponse($orders, 'Orders Retrieve successful');
-       }catch(\Exception $e){
+        try {
+            $email = Cache::get('email'.$request->email.'');
+
+            if(isset($email)){
+
+                $orders = Cart::where('email', $email)->get();
+
+                return $this->sendResponse($orders, 'Orders Retrieve successful');
+            }else{
+                return $this->sendError('No Order Yet', 'You have not placed any order yet!');
+            }
+        }catch(\Exception $e){
            Log::error('Error in getting orders for user : '.$e);
        }
     }
 
-    public function getOrderItems(Request $request){
-        $this->validate($request, [
-            'order_id' => 'required',
-            'user_id' => 'required',
-        ]);
-        if(Cart::where('user_id', '=', $request->user_id)->count() == 0){
-            return $this->sendError('No Items', 'This order do not belong to you!');
-        }
-        try{
-        $items = Cart::where('order_id', $request->order_id)->get();
-//         $total_amount_for_orders = Order::where('order_id', $request->order_id)->first();
-//            $items['item_count'] = $total_amount_for_orders['item_count'];
-//            $items['total_amount_in_dollars'] = $total_amount_for_orders['total_amount_in_dollars'];
-//            $items['total_amount_in_euros'] = $total_amount_for_orders['total_amount_in_euros'];
-            return $this->sendResponse($items, 'Order Items Retrieve successful');
-            }catch(\Exception $e){
-        Log::error('Error in getting items of order : '.$e);
-        }
-    }
+//    public function getOrderItems(Request $request){
+//        $this->validate($request, [
+//            'order_id' => 'required',
+//            'user_id' => 'required',
+//        ]);
+//        if(Cart::where('user_id', '=', $request->user_id)->count() == 0){
+//            return $this->sendError('No Items', 'This order do not belong to you!');
+//        }
+//        try{
+//        $items = Cart::where('order_id', $request->order_id)->get();
+//            return $this->sendResponse($items, 'Order Items Retrieve successful');
+//            }catch(\Exception $e){
+//        Log::error('Error in getting items of order : '.$e);
+//        }
+//    }
     /**
      * Show the form for creating a new resource.
      *

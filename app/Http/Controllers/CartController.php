@@ -10,6 +10,8 @@ use Response;
 use Validator;
 use App\Http\Controllers\PassportController as Passport;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+
 
 class CartController extends Controller
 {
@@ -56,40 +58,18 @@ class CartController extends Controller
     {
 
      try{
-
-         if(isset($request->data['name']) && isset($request->data['email'])) {
              $validate = Validator::make($request->data,[
-                 'name' => 'required',
-                 'phone_number' => 'required',
+                 'full_name' => 'required',
+                 'phone' => 'required',
                  'email' => 'required|email|unique:users',
                  'currency' => 'required',
                  'address' => 'required',
-                 'password' => 'required',
+                 'zip_code' => 'required',
              ]);
 
             if($validate->fails()){
              return $this->sendError('Validations Error', $validate->errors());
            }
-
-             $user = $this->passport->register($request->data);
-         }elseif(isset($request->data['email'])){
-             $validate = Validator::make($request->data,[
-                 'email' => 'required',
-                 'currency' => 'required',
-                 'password' => 'required',
-             ]);
-
-             if($validate->fails()){
-                 return $this->sendError('Validations Error', $validate->errors());
-             }
-
-             $user = $this->passport->login($request->data);
-             if($user === 'Incorrect'){
-                 return $this->sendError('incorrect', 'Email or password is incorrect!');
-             }
-
-         }
-
 
         $order_code = mt_rand(2, 909);
         $order_id_code = 'ORD'.$order_code;
@@ -98,19 +78,18 @@ class CartController extends Controller
         $order->order_id = $order_id_code;
          if($request->user_id){
              $order->user_id = $request->user_id;
-             $users = User::find($request->user_id);
-             $order->shipping_address = $users->address;
-             $order->phone_number = $users->phone_number;
          }else{
-             $order->user_id = $user['user_id'];
-             $order->shipping_address = $user['address'];
-             $order->phone_number = $user['phone_number'];
+             $order->user_id = 0;
+             $order->shipping_address = $request->data['address'];
+             $order->phone_number = $request->data['phone'];
          }
         $order->currency = $request->data['currency'];
         $order->total_amount = $request->total;
-        $order->shipping_fees = $request->shippingFees;
-        $order->save();
+        $order->shipping_fees = $request->data['shippingFees'];
+        $order->zip_code = $request->data['zip_code'];
+        $order->email = $request->data['email'];
 
+         $order->save();
 
         foreach ($request->cartItems as $carts) {
 
@@ -136,21 +115,48 @@ class CartController extends Controller
             if($request->user_id){
                 $cart->user_id = $request->user_id;
             }else{
-                $cart->user_id = $user['user_id'];
+                $cart->user_id = 0;
             }
 
             $cart->order_id = $order_id_code;
+            $cart->email = $request->data['email'];
+            $cart->phone = $request->data['phone'];
             $cart->save();
         }
-//        return $user;
 
-        return $this->sendResponse($user, 'Orders placed successful', 'OD001');
+          Cache::forever('email'.$request->data['email'].'', $request->data['email']);
+
+        return $this->sendResponse($cart, 'Orders placed successful', 'OD001');
       }catch(\Exception $e){
           Log::error('Error in checking out : '.$e);
       }
 
     }
 
+
+//    /**
+//     * Display a listing of the resource.
+//     *
+//     * @return \Illuminate\Http\Response
+//     */
+//    public function getCartItems(Request $request)
+//    {
+//        try {
+//            $email = Cache::get('email');
+//
+////            return $email;
+//            if(isset($email)){
+//
+//                $orders = Cart::where('email', $email)->get();
+//
+//                return $this->sendResponse($orders, 'Orders Retrieve successful');
+//            }else{
+//                return $this->sendError('No Order Yet', 'You have not placed any order yet!');
+//            }
+//        }catch(\Exception $e){
+//            Log::error('Error in getting orders for user : '.$e);
+//        }
+//    }
     /**
      * Display the specified resource.
      *
