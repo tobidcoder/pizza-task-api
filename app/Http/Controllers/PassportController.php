@@ -32,7 +32,7 @@ class PassportController extends Controller
                 'phone_number' => 'required',
                 'email' => 'required|email|unique:users',
                 'address' => 'required',
-                'password' => 'required',
+                'password' => 'required',hpp
             ]);
 
         if($validate->fails()){
